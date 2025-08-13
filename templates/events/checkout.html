@@ -1,0 +1,65 @@
+<!-- templates/events/checkout.html -->
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="card shadow-lg border-0 rounded-4 p-4">
+        <div class="row">
+            <div class="col-md-6">
+                <img src="{{ event.image.url }}" alt="{{ event.name }}" class="img-fluid rounded-4">
+            </div>
+            <div class="col-md-6">
+                <h2 class="fw-bold">{{ event.name }}</h2>
+                <p class="text-muted">{{ event.date|date:"F j, Y" }} | {{ event.location }}</p>
+
+                <form method="POST" id="checkoutForm">
+                    {% csrf_token %}
+                    <div class="ticket-list">
+                        {% for ticket in ticket_types %}
+                        <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                            <div>
+                                <h5 class="mb-0">{{ ticket.name }}</h5>
+                                <small class="text-muted">KES {{ ticket.price }}</small>
+                            </div>
+                            <div>
+                                <input type="number" min="0" value="0"
+                                       class="form-control ticket-qty"
+                                       data-price="{{ ticket.price }}">
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="mt-4">
+                        <h4>Total: <span id="totalAmount">KES 0</span></h4>
+                        <input type="hidden" name="total_amount" id="totalInput">
+                    </div>
+
+                    <div class="mt-4">
+                        <label for="phone" class="form-label">M-Pesa Phone Number</label>
+                        <input type="text" name="phone" id="phone" class="form-control" placeholder="07XXXXXXXX" required>
+                    </div>
+
+                    <button type="submit" class="btn btn-success w-100 py-3 mt-4 rounded-pill shadow-sm">
+                        Pay with M-Pesa
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.querySelectorAll(".ticket-qty").forEach(input => {
+    input.addEventListener("input", () => {
+        let total = 0;
+        document.querySelectorAll(".ticket-qty").forEach(qty => {
+            total += parseInt(qty.value || 0) * parseFloat(qty.dataset.price);
+        });
+        document.getElementById("totalAmount").textContent = `KES ${total}`;
+        document.getElementById("totalInput").value = total;
+    });
+});
+</script>
+{% endblock %}

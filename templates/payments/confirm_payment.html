@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <div class="container mt-4">
+    <h3>{{ message }}</h3>
+    <p>We've initiated an M-Pesa STK Push to your phone.</p>
+    <p>Please complete the payment to receive your ticket.</p>
+
+    <a href="{% url 'events:event_list' %}" class="btn btn-primary mt-3">Back to Events</a>
+  </div>
+{% endblock %}

@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block title %}Buy Ticket{% endblock %}
+
+{% block content %}
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <h3 class="mb-4">🎫 Buy Ticket - {{ event.title }}</h3>
+      <p><strong>Date:</strong> {{ event.date }}</p>
+      <p><strong>Price:</strong> KES {{ event.price }}</p>
+
+      <form method="post" class="card card-body shadow-sm">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-success">Proceed with M-Pesa STK Push</button>
+      </form>
+    </div>
+  </div>
+{% endblock %}

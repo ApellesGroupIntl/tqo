@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+
+{% block title %}About Us | TQO HUB{% endblock %}
+
+{% block hero %}
+<section class="hero-section" style="background: linear-gradient(135deg, #6c5ce7, #a29bfe);">
+    <div class="container text-center py-5">
+        <h1 class="display-4 fw-bold mb-3">About TQO HUB</h1>
+        <p class="lead mb-4">Connecting people with unforgettable experiences</p>
+    </div>
+</section>
+{% endblock %}
+
+{% block content %}
+<!-- Our Story Section -->
+<section class="py-5">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6 mb-4 mb-lg-0">
+                <img src="https://images.unsplash.com/photo-1531058020387-3be344556be6?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80"
+                     alt="Our Team" class="img-fluid rounded-3 shadow">
+            </div>
+            <div class="col-lg-6">
+                <h2 class="text-primary mb-4">Our Story</h2>
+                <p class="lead">Founded in 2024, TQO HUB has been revolutionizing the event ticketing industry in Kenya.</p>
+                <p>We started with a simple mission: to make event discovery and ticket purchasing seamless, secure, and enjoyable for everyone. What began as a small platform has grown into Kenya's premier event ticketing solution, serving thousands of happy customers.</p>
+                <p>Our team of passionate event enthusiasts works tirelessly to ensure you have access to the best events in your area, with the easiest booking process possible.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Mission & Vision Section -->
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-6 mb-4 mb-md-0">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center p-4">
+                        <div class="icon-box bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 70px; height: 70px;">
+                            <i class="fas fa-bullseye fa-2x"></i>
+                        </div>
+                        <h3 class="text-primary">Our Mission</h3>
+                        <p>To connect people with amazing experiences by providing a seamless platform for event discovery and ticket purchasing, while supporting event organizers with powerful tools to grow their audiences.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body text-center p-4">
+                        <div class="icon-box bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 70px; height: 70px;">
+                            <i class="fas fa-eye fa-2x"></i>
+                        </div>
+                        <h3 class="text-primary">Our Vision</h3>
+                        <p>To become Africa's leading event technology platform, transforming how people discover and experience events while creating meaningful connections between organizers and attendees across the continent.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Team Section -->
+<!-- Team Section -->
+<section class="py-5">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="text-primary">Meet Our Team</h2>
+            <p class="lead">The passionate people behind TQO HUB</p>
+        </div>
+        <div class="row g-4 justify-content-center">
+            <!-- Team Member 1 -->
+            <div class="col-lg-4 col-md-6">
+                <div class="team-card card border-0 shadow-sm h-100">
+                    <div class="team-img-container" style="height: 300px; overflow: hidden;">
+                        <img src="/static/media/me.jpg" class="w-100 h-100 object-fit-cover" alt="Victor Wainaina">
+                    </div>
+                    <div class="card-body text-center p-4">
+                        <h3 class="h5 card-title mb-1">Victor Wainaina</h3>
+                        <p class="text-muted small mb-3">CEO & Founder</p>
+                        <p class="card-text small">Visionary leader driving TQO HUB's mission to transform event experiences across Africa.</p>
+                        <div class="social-links mt-3">
+                            <a href="#" class="text-primary me-2"><i class="fab fa-twitter"></i></a>
+                            <a href="#" class="text-primary me-2"><i class="fab fa-linkedin-in"></i></a>
+                            <a href="#" class="text-primary"><i class="fas fa-envelope"></i></a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Team Member 2 -->
+            <div class="col-lg-4 col-md-6">
+                <div class="team-card card border-0 shadow-sm h-100">
+                    <div class="team-img-container" style="height: 300px; overflow: hidden;">
+                        <img src="/static/media/mum.png" class="w-100 h-100 object-fit-cover" alt="Mary Wanjiru">
+                    </div>
+                    <div class="card-body text-center p-4">
+                        <h3 class="h5 card-title mb-1">Mary Wanjiru</h3>
+                        <p class="text-muted small mb-3">Customer Experience</p>
+                        <p class="card-text small">Dedicated to ensuring every customer has a seamless and enjoyable experience with our platform.</p>
+                        <div class="social-links mt-3">
+                            <a href="#" class="text-primary me-2"><i class="fab fa-twitter"></i></a>
+                            <a href="#" class="text-primary me-2"><i class="fab fa-linkedin-in"></i></a>
+                            <a href="#" class="text-primary"><i class="fas fa-envelope"></i></a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Team Member 3 -->
+            <div class="col-lg-4 col-md-6">
+                <div class="team-card card border-0 shadow-sm h-100">
+                    <div class="team-img-container" style="height: 300px; overflow: hidden;">
+                        <img src="/static/media/cl.png" class="w-100 h-100 object-fit-cover" alt="Claire Gachambi">
+                    </div>
+                    <div class="card-body text-center p-4">
+                        <h3 class="h5 card-title mb-1">Claire Gachambi</h3>
+                        <p class="text-muted small mb-3">Sales-in-Charge</p>
+                        <p class="card-text small">Building partnerships and driving growth for event organizers using our platform.</p>
+                        <div class="social-links mt-3">
+                            <a href="#" class="text-primary me-2"><i class="fab fa-twitter"></i></a>
+                            <a href="#" class="text-primary me-2"><i class="fab fa-linkedin-in"></i></a>
+                            <a href="#" class="text-primary"><i class="fas fa-envelope"></i></a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<style>
+
+    .team-card {
+  font-family: 'Arial', sans-serif;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+  background: #fff;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  border-radius: 8px;
+}
+
+.team-member {
+  margin-bottom: 25px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #eee;
+}
+
+.team-member:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.team-member h3 {
+  color: #333;
+  margin-bottom: 5px;
+  font-size: 18px;
+}
+
+.position {
+  color: #666;
+  font-weight: bold;
+  margin-bottom: 8px;
+  font-size: 15px;
+}
+
+.qualifications {
+  color: #555;
+  font-size: 14px;
+  line-height: 1.4;
+}
+</style>
+
+</style>>
+
+<!-- Stats Section -->
+<section class="py-5 bg-primary text-white">
+    <div class="container">
+        <div class="row text-center">
+            <div class="col-md-3 mb-4 mb-md-0">
+                <h2 class="display-4 fw-bold">5+</h2>
+                <p class="mb-0">Events Hosted</p>
+            </div>
+            <div class="col-md-3 mb-4 mb-md-0">
+                <h2 class="display-4 fw-bold">100+</h2>
+                <p class="mb-0">Happy Customers</p>
+            </div>
+            <div class="col-md-3 mb-4 mb-md-0">
+                <h2 class="display-4 fw-bold">25+</h2>
+                <p class="mb-0">Event Partners</p>
+            </div>
+            <div class="col-md-3">
+                <h2 class="display-4 fw-bold">1+</h2>
+                <p class="mb-0">Cities Covered</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<style>
+    /* Team Card Styling */
+    .team-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .team-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .team-img-container {
+        overflow: hidden;
+
+    }
+
+    .object-fit-cover {
+        object-fit: cover;
+        object-position: center;
+        transition: transform 0.5s ease;
+    }
+
+    .team-card:hover .object-fit-cover {
+        transform: scale(1.05);
+    }
+
+    /* Social Icons */
+    .social-links a {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background-color: rgba(108, 92, 231, 0.1);
+        transition: all 0.3s ease;
+    }
+
+    .social-links a:hover {
+        background-color: var(--primary-color);
+        color: white !important;
+        transform: translateY(-3px);
+    }
+
+    /* General Styles */
+    .icon-box {
+        transition: all 0.3s ease;
+    }
+    .card:hover .icon-box {
+        transform: rotate(15deg) scale(1.1);
+    }
+</style>
+{% endblock %}

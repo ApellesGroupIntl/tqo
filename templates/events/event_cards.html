@@ -1,0 +1,199 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_head %}
+<style>
+  .event-card {
+    transition: all 0.3s ease;
+    border: none;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  }
+  .event-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 24px rgba(108, 92, 231, 0.15);
+  }
+  .event-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+  }
+  .event-badge {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: rgba(255,255,255,0.9);
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  .event-image {
+    height: 200px;
+    object-fit: cover;
+    transition: transform 0.5s ease;
+  }
+  .event-card:hover .event-image {
+    transform: scale(1.05);
+  }
+  .price-tag {
+    background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+    color: white;
+    padding: 3px 12px;
+    border-radius: 20px;
+    font-weight: 600;
+    display: inline-block;
+  }
+  .empty-state {
+    text-align: center;
+    padding: 40px 0;
+  }
+  .empty-state img {
+    max-width: 200px;
+    margin-bottom: 20px;
+    opacity: 0.7;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="row mb-4">
+    <div class="col">
+      <h2 class="fw-bold"><i class="fas fa-calendar-alt me-2 text-primary"></i>Upcoming Events</h2>
+      <p class="text-muted">Discover amazing experiences waiting for you</p>
+    </div>
+  </div>
+
+  {% if events %}
+  <div class="row g-4">
+    {% for event in events %}
+    <div class="col-lg-4 col-md-6">
+      <div class="card h-100 event-card">
+        <a href="{% url 'events:event_detail' event.id %}" class="event-link">
+          <div class="position-relative overflow-hidden">
+            {% if event.image %}
+              <img src="{{ event.image.url }}" class="card-img-top event-image" alt="{{ event.title }}">
+            {% else %}
+              <img src="{% static 'images/default.jpg' %}" class="card-img-top event-image" alt="{{ event.title }}">
+            {% endif %}
+            <div class="event-badge">
+              <i class="fas fa-calendar-day me-1 text-primary"></i>{{ event.date|date:"M d" }}
+            </div>
+          </div>
+          <div class="card-body">
+            <h5 class="card-title">{{ event.title }}</h5>
+            <p class="text-muted mb-3">{{ event.description|truncatechars:100 }}</p>
+
+            <div class="d-flex align-items-center mb-2">
+              <i class="fas fa-map-marker-alt me-2 text-danger"></i>
+              <small>{{ event.location }}</small>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mt-3">
+              <div>
+                <span class="price-tag">KES {{ event.price }}</span>
+              </div>
+              <a href="{% url 'events:ticket_selection' event.id %}" class="btn btn-sm btn-primary">
+                <i class="fas fa-ticket-alt me-1"></i>Get Tickets
+              </a>
+            </div>
+          </div>
+        </a>
+      </div>
+    </div>
+
+    <!-- Buy Ticket Modal -->
+    <div class="modal fade" id="buyTicketModal{{ event.id }}" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <form method="POST" action="{% url 'payments:buy_ticket' event.id %}">
+            {% csrf_token %}
+            <div class="modal-header bg-primary text-white">
+              <h5 class="modal-title">Get Tickets for {{ event.title }}</h5>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+              <div class="mb-3">
+                <label class="form-label">Ticket Type</label>
+                <select name="ticket_type" class="form-select" id="ticketType{{ event.id }}" required>
+                  {% for ticket in event.ticket_types.all %}
+                    <option value="{{ ticket.id }}" data-price="{{ ticket.price }}">
+                      {{ ticket.name }} - KES {{ ticket.price }}
+                    </option>
+                  {% endfor %}
+                </select>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">Quantity</label>
+                <input type="number" name="quantity" id="quantity{{ event.id }}" class="form-control" value="1" min="1" required>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">Phone Number</label>
+                <input type="text" name="phone" class="form-control" placeholder="2547xxxxxxxx" required>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">Email</label>
+                <input type="email" name="email" class="form-control" placeholder="you@example.com" required>
+              </div>
+
+              <div class="alert alert-primary d-flex align-items-center">
+                <i class="fas fa-info-circle me-2"></i>
+                <div>
+                  <strong>Total: KES <span id="totalPrice{{ event.id }}">{{ event.ticket_types.first.price|default:0 }}</span></strong>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-lock me-1"></i>Secure Checkout
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <img src="{% static 'images/empty-events.svg' %}" alt="No events" class="img-fluid">
+    <h4 class="text-muted">No Events Available</h4>
+    <p class="text-muted">Check back later for exciting upcoming events!</p>
+    {% if user.is_authenticated %}
+    <a href="{% url 'events:create_event' %}" class="btn btn-primary mt-3">
+      <i class="fas fa-plus me-1"></i>Create an Event
+    </a>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    {% for event in events %}
+    (function() {
+      let ticketSelect = document.getElementById("ticketType{{ event.id }}");
+      let quantityInput = document.getElementById("quantity{{ event.id }}");
+      let totalPriceEl = document.getElementById("totalPrice{{ event.id }}");
+
+      function updateTotal() {
+        let price = parseFloat(ticketSelect.selectedOptions[0].getAttribute("data-price"));
+        let qty = parseInt(quantityInput.value);
+        totalPriceEl.textContent = (price * qty).toFixed(2);
+      }
+
+      if(ticketSelect && quantityInput && totalPriceEl) {
+        ticketSelect.addEventListener("change", updateTotal);
+        quantityInput.addEventListener("input", updateTotal);
+      }
+    })();
+    {% endfor %}
+  });
+</script>
+{% endblock %}

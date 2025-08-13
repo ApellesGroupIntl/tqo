@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <div class="container">
+    <h2>Manage Events</h2>
+    <a href="{% url 'events:create_event' %}" class="btn btn-success mb-3">+ Add New Event</a>
+
+    <form method="get" class="mb-3">
+      <input type="text" name="q" class="form-control" placeholder="Search events..." value="{{ request.GET.q }}">
+    </form>
+
+    {% if events %}
+      <table class="table table-bordered table-hover">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Date</th>
+            <th>Location</th>
+            <th>Price</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for event in events %}
+            <tr>
+              <td>{{ event.title }}</td>
+              <td>{{ event.date }}</td>
+              <td>{{ event.location }}</td>
+              <td>KES {{ event.price }}</td>
+              <td>
+                <a href="{% url 'events:update_event' event.id %}" class="btn btn-sm btn-warning">Edit</a>
+                <a href="{% url 'events:delete_event' event.id %}" class="btn btn-sm btn-danger">Delete</a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p>No events found.</p>
+    {% endif %}
+  </div>
+{% endblock %}

@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Events{% endblock %}
+
+{% block content %}
+
+  <div class="row">
+    <div class="col">
+      <h2 class="mb-4">🎉 Upcoming Events</h2>
+    </div>
+  </div>
+<!-- Hero Banner -->
+<section class="py-5 text-center bg-dark text-white" style="background: url('/static/images/hero.jpg') center/cover no-repeat;">
+  <div class="container">
+    <h1 class="display-4 fw-bold">Discover & Book Exciting Events</h1>
+    <p class="lead">From concerts to conferences — your next event is just a click away.</p>
+    <a href="{% url 'events:event_list' %}" class="btn btn-warning btn-lg mt-3">Explore Events</a>
+  </div>
+</section>
+
+  <div class="row">
+    {% for event in events %}
+      <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card shadow-sm h-100">
+          <div class="card-body">
+            <h5 class="card-title">{{ event.title }}</h5>
+            <p class="card-text">{{ event.description|truncatechars:100 }}</p>
+            <p class="text-muted mb-1">
+              <i class="fa fa-calendar-alt"></i> {{ event.date|date:"M d, Y H:i" }}
+            </p>
+            <p><strong>KES {{ event.price }}</strong></p>
+            <a href="{% url 'payments:buy_ticket' event.id %}" class="btn btn-primary w-100">Buy Ticket</a>
+          </div>
+        </div>
+      </div>
+    {% empty %}
+      <p>No upcoming events.</p>
+    {% endfor %}
+  </div>
+{% endblock %}

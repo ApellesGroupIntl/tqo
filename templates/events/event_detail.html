@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block title %}{{ event.title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <h1>{{ event.title }}</h1>
+  {% if event.image %}
+    <img src="{{ event.image.url }}" class="img-fluid mb-3" alt="{{ event.title }}">
+  {% endif %}
+  <p>{{ event.description }}</p>
+  <p><strong>Date:</strong> {{ event.date|date:"M d, Y" }}</p>
+  <p><strong>Time:</strong> {{ event.time|time:"H:i" }}</p>
+  <p><strong>Location:</strong> {{ event.location }}</p>
+  <p><strong>Price:</strong> KES {{ event.price }}</p>
+</div>
+{% endblock %}

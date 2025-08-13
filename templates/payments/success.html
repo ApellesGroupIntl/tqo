@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+
+{% block extra_head %}
+<style>
+  .summary-card {
+    border-radius: 12px;
+    box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+    max-width: 600px;
+    margin: 0 auto;
+  }
+  .summary-header {
+    background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+    color: white;
+    border-radius: 12px 12px 0 0;
+    padding: 1.5rem;
+  }
+  .summary-body {
+    padding: 2rem;
+  }
+  .summary-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #eee;
+  }
+  .summary-item:last-child {
+    border-bottom: none;
+    font-weight: 600;
+    font-size: 1.1rem;
+  }
+  .summary-icon {
+    color: #6c5ce7;
+    margin-right: 10px;
+  }
+  .btn-download {
+    background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+    border: none;
+    padding: 0.75rem 1.5rem;
+    font-weight: 600;
+  }
+  .btn-download:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(108, 92, 231, 0.3);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-md-10">
+      <div class="summary-card">
+        <div class="summary-header text-center">
+          <h3><i class="fas fa-check-circle me-2"></i>Payment Confirmed</h3>
+          <p class="mb-0">Your transaction was successful</p>
+        </div>
+
+        <div class="summary-body">
+          <div class="alert alert-success">
+            <i class="fas fa-check-circle me-2"></i>
+            Thank you for your payment. Your tickets are ready!
+          </div>
+
+          <h5 class="mb-4">Payment Summary</h5>
+
+          <div class="mb-4">
+            <div class="summary-item">
+              <span><i class="fas fa-ticket-alt summary-icon"></i>Event:</span>
+              <span>{{ event.title }}</span>
+            </div>
+            <div class="summary-item">
+              <span><i class="fas fa-calendar-day summary-icon"></i>Date:</span>
+              <span>{{ event.date|date:"F j, Y" }} at {{ event.time|time:"g:i A" }}</span>
+            </div>
+            <div class="summary-item">
+              <span><i class="fas fa-map-marker-alt summary-icon"></i>Venue:</span>
+              <span>{{ event.location }}</span>
+            </div>
+            <div class="summary-item">
+              <span><i class="fas fa-receipt summary-icon"></i>Transaction ID:</span>
+              <span>{{ transaction.transaction_id }}</span>
+            </div>
+            <div class="summary-item">
+              <span><i class="fas fa-money-bill-wave summary-icon"></i>Amount Paid:</span>
+              <span>KES {{ transaction.amount }}</span>
+            </div>
+            <div class="summary-item">
+              <span><i class="fas fa-mobile-alt summary-icon"></i>Paid From:</span>
+              <span>{{ transaction.phone }}</span>
+            </div>
+            <div class="summary-item">
+              <span><i class="fas fa-clock summary-icon"></i>Payment Date:</span>
+              <span>{{ transaction.timestamp|date:"F j, Y g:i A" }}</span>
+            </div>
+            <div class="summary-item">
+              <span>Total:</span>
+              <span class="text-success">KES {{ transaction.amount }}</span>
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-between mt-4">
+            <a href="{% url 'events:event_list' %}" class="btn btn-outline-primary">
+              <i class="fas fa-calendar me-2"></i>Browse More Events
+            </a>
+            <a href="{% url 'payments:download_ticket' transaction.id %}" class="btn btn-download text-white">
+              <i class="fas fa-download me-2"></i>Download Ticket
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

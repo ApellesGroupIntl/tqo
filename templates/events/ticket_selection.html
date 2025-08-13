@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_head %}
+<style>
+  .checkout-card {
+    border-radius: 10px;
+    border: none;
+    box-shadow: 0 4px 12px rgba(108, 92, 231, 0.1);
+    max-width: 500px;
+    margin: 0 auto;
+  }
+  .event-header {
+    background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+    color: white;
+    padding: 1rem;
+    border-radius: 10px 10px 0 0;
+  }
+  .price-highlight {
+    font-weight: 700;
+    color: #6c5ce7;
+  }
+  .form-control {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+  }
+  .btn-checkout {
+    background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+    border: none;
+    padding: 0.75rem;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+  }
+  .btn-checkout:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(108, 92, 231, 0.3);
+  }
+  .input-icon {
+    position: relative;
+  }
+  .input-icon i {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #6c5ce7;
+    font-size: 0.9rem;
+  }
+  .input-icon input {
+    padding-left: 35px;
+  }
+  .section-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: #6c5ce7;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="card checkout-card">
+    <div class="event-header">
+      <h5 class="mb-1"><i class="fas fa-ticket-alt me-1"></i>{{ event.title }}</h5>
+      <small>
+        <i class="far fa-calendar me-1"></i>{{ event.date|date:"M j, Y" }} •
+        <i class="far fa-clock me-1"></i>{{ event.time|time:"g:i A" }}
+      </small>
+    </div>
+
+    <div class="card-body p-3">
+      <form method="post" action="{% url 'payments:checkout' event.id %}">
+        {% csrf_token %}
+
+        <div class="mb-3">
+          <div class="section-title"><i class="fas fa-ticket me-1"></i>Ticket Type</div>
+          <select name="ticket_type" class="form-select form-select-sm" required>
+            {% for ticket in event.ticket_types.all %}
+              <option value="{{ ticket.id }}" data-price="{{ ticket.price }}">
+                {{ ticket.name }} - KES {{ ticket.price }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="mb-3">
+          <div class="section-title"><i class="fas fa-list-ol me-1"></i>Quantity</div>
+          <input type="number" name="quantity" class="form-control" value="1" min="1" required>
+        </div>
+
+        <div class="mb-3">
+          <div class="section-title"><i class="fas fa-user me-1"></i>Your Details</div>
+
+          <div class="input-icon mb-2">
+            <i class="fas fa-mobile-alt"></i>
+            <input type="text" name="phone" class="form-control"
+                   placeholder="2547xxxxxxxx" required>
+          </div>
+
+          <div class="input-icon">
+            <i class="fas fa-envelope"></i>
+            <input type="email" name="email" class="form-control"
+                   placeholder="you@example.com" required>
+          </div>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mb-3 p-2 bg-light rounded">
+          <div class="fw-bold">Total:</div>
+          <div class="price-highlight" id="totalPrice">
+            KES {{ event.ticket_types.first.price|default:0 }}
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-checkout w-100 text-white">
+          <i class="fas fa-lock me-1"></i>Proceed to Payment
+        </button>
+
+        <div class="text-center mt-2">
+          <small class="text-muted">
+            <i class="fas fa-shield-alt me-1 text-success"></i>
+            Secure payment by Apelles Group Intl, PG
+          </small>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const ticketSelect = document.querySelector('select[name="ticket_type"]');
+  const quantityInput = document.querySelector('input[name="quantity"]');
+  const totalPriceEl = document.getElementById('totalPrice');
+
+  function updateTotal() {
+    const price = parseFloat(ticketSelect.selectedOptions[0].dataset.price);
+    const quantity = parseInt(quantityInput.value);
+    totalPriceEl.textContent = 'KES ' + (price * quantity).toFixed(2);
+  }
+
+  ticketSelect.addEventListener('change', updateTotal);
+  quantityInput.addEventListener('input', updateTotal);
+});
+</script>
+{% endblock %}
