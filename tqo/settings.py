@@ -90,8 +90,8 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 SESSION_COOKIE_SECURE = True  # True if using HTTPS
-SESSION_COOKIE_HTTPONLY = True
-SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+SESSION_COOKIE_HTTPONLY = False
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
 AUTH_USER_MODEL = 'users.User'
 
@@ -192,9 +192,12 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CSRF_TRUSTED_ORIGINS = [
-    'https://ci-derek-drunk-personals.trycloudflare.com'
-
+    'https://escape-backing-savings-army.trycloudflare.com'
    # Add other domains if needed
+]
+
+SITE_URL = [
+    'https://escape-backing-savings-army.trycloudflare.com'
 ]
 
 JAZZMIN_SETTINGS = {

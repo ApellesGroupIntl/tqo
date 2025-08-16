@@ -114,508 +114,150 @@
     </div>
 </div>
 
+
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  // DOM Elements
-  const form = document.getElementById('mpesaPaymentForm');
-  const submitBtn = document.getElementById('submitBtn');
-  const phoneInput = document.getElementById('phone');
-  const amountInput = document.querySelector('input[name="amount"]');
-  const eventInput = document.querySelector('input[name="event_id"]');
-  const paymentModal = new bootstrap.Modal(document.getElementById('paymentModal'));
-  const displayPhone = document.getElementById('displayPhone');
-  const statusMessage = document.getElementById('statusMessage');
-  const paymentResult = document.getElementById('paymentResult');
-  const paymentStatus = document.getElementById('paymentStatus');
+    const form = document.getElementById('mpesaPaymentForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const phoneInput = document.getElementById('phone');
+    const amountInput = document.querySelector('input[name="amount"]');
+    const eventInput = document.querySelector('input[name="event_id"]');
+    const paymentModal = new bootstrap.Modal('#paymentModal');
+    const statusDiv = document.getElementById('paymentStatus');
+    const resultDiv = document.getElementById('paymentResult');
+    const displayPhone = document.getElementById('displayPhone');
 
-  // CSRF Token
-  const csrftoken = getCookie('csrftoken');
+    const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    const POLLING_INTERVAL = 15000; // 15 seconds
+    const POLLING_MAX_ATTEMPTS = 12;
 
-  // Phone Number Utilities
-  function normalizePhone(phone) {
-    phone = (phone || '').replace(/\D/g, '');
-    if (phone.startsWith('0') && phone.length === 10) return '254' + phone.slice(1);
-    if (phone.startsWith('7') && phone.length === 9) return '254' + phone;
-    if (phone.startsWith('+254') && phone.length === 13) return phone.slice(1);
-    return phone;
-  }
+    function formatPhone(phone) {
+        phone = phone.replace(/\D/g, '');
+        if (phone.startsWith('0')) return '254' + phone.slice(1);
+        if (phone.startsWith('7')) return '254' + phone;
+        if (phone.startsWith('+254')) return phone.slice(1);
+        return phone;
+    }
 
-  function validatePhone(phone) {
-    return /^2547\d{8}$/.test(phone);
-  }
+    function isValidPhone(phone) {
+        return /^2547\d{8}$/.test(phone);
+    }
 
-  // Payment Status Polling
-  async function pollPaymentStatus(checkoutRequestId) {
-    const maxAttempts = 12;
-    const baseDelay = 2000;
-    let attempt = 0;
+    function updateStatus(message, type='info') {
+        statusDiv.innerHTML = `<div class="alert alert-${type} alert-dismissible fade show">
+            ${type === 'info' ? '<span class="spinner-border spinner-border-sm me-2"></span>' : ''}
+            ${message}
+        </div>`;
+    }
 
-    while (attempt < maxAttempts) {
-      attempt++;
-      updateStatus(`Checking payment status (${attempt}/${maxAttempts})...`, 'info');
+    function showResult(success, message, showRetry=true) {
+        const alertType = success ? 'success' : 'danger';
+        resultDiv.innerHTML = `<div class="alert alert-${alertType}">
+            ${message}
+            ${!success && showRetry ? '<button class="btn btn-sm btn-warning mt-2" id="retryBtn">Try Again</button>' : ''}
+        </div>`;
+        if (!success && showRetry) {
+            document.getElementById('retryBtn').addEventListener('click', handleSubmit);
+        }
+    }
 
-      try {
-        const response = await fetch(`/payments/check-status/?checkout_request_id=${checkoutRequestId}`, {
-          method: 'GET',
-          headers: { 'X-CSRFToken': csrftoken }
-        });
+    async function checkPaymentStatus(checkoutRequestId) {
+        for (let attempt = 1; attempt <= POLLING_MAX_ATTEMPTS; attempt++) {
+            updateStatus(`Checking payment status (${attempt}/${POLLING_MAX_ATTEMPTS})...`);
+            try {
+                const response = await fetch(`/payments/status/?checkout_request_id=${checkoutRequestId}`, {
+                    headers: { 'X-CSRFToken': csrftoken },
+                    credentials: 'include'
+                });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
 
-        if (!response.ok) throw new Error(`Server error: ${response.status}`);
+                if (data.status === 'success') return data;
+                if (data.status === 'failed') throw new Error(data.message || 'Payment failed');
 
-        const data = await response.json();
+                await new Promise(r => setTimeout(r, POLLING_INTERVAL));
+            } catch (err) {
+                console.error('Polling error:', err);
+                if (attempt === POLLING_MAX_ATTEMPTS) throw new Error('Payment confirmation timed out. Please check your M-Pesa messages.');
+            }
+        }
+        throw new Error('Max polling attempts reached');
+    }
 
-        if (data.status === 'success') {
-          showResult('success', 'Payment complete — Redirecting...');
-          setTimeout(() => window.location.href = `/payments/success/${data.transaction_id}/`, 1500);
-          return true;
+    async function handleSubmit(e) {
+        if (e) e.preventDefault();
+
+        const phone = formatPhone(phoneInput.value);
+        const amount = amountInput.value;
+        const eventId = eventInput.value;
+
+        if (!isValidPhone(phone)) {
+            showResult(false, 'Enter a valid Safaricom number (2547XXXXXXXX)', false);
+            phoneInput.focus();
+            return;
+        }
+        if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
+            showResult(false, 'Amount must be greater than 0', false);
+            amountInput.focus();
+            return;
         }
 
-        if (data.status === 'failed') {
-          throw new Error(data.message || 'Payment failed');
+        submitBtn.disabled = true;
+        updateStatus('Initiating payment request...');
+
+        try {
+            const response = await fetch('/payments/stk-push/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken,
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({ phone_number: phone, amount, event_id: eventId })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok || !data.success || !data.checkout_request_id) {
+                throw new Error(data.message || 'Failed to initiate payment');
+            }
+
+            displayPhone.textContent = phone;
+            paymentModal.show();
+            updateStatus('STK Push sent. Enter your M-Pesa PIN on your phone...');
+
+            const result = await checkPaymentStatus(data.checkout_request_id);
+            showResult(true, 'Payment successful! Thank you.');
+
+        } catch (error) {
+            console.error('Payment error:', error);
+            const msg = error.message.includes('timed out')
+                ? 'Payment confirmation timed out. Please check your M-Pesa messages.'
+                : error.message;
+            showResult(false, msg);
+        } finally {
+            submitBtn.disabled = false;
         }
-
-        // Exponential backoff
-        await new Promise(r => setTimeout(r, baseDelay * Math.pow(1.3, attempt)));
-      } catch (error) {
-        console.error('Polling error:', error);
-        if (attempt >= maxAttempts) {
-          showResult('warning', 'Payment is taking longer than usual. Please check your M-Pesa messages.');
-          return false;
-        }
-      }
-    }
-  }
-
-  // UI Helpers
-  function updateStatus(message, type = 'info') {
-    statusMessage.textContent = message;
-    paymentStatus.className = `alert alert-${type}`;
-  }
-
-  function showResult(type, message) {
-    paymentResult.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
-  }
-
-  function resetFormState() {
-    submitBtn.disabled = false;
-    paymentStatus.classList.add('d-none');
-  }
-
-  // Form Submission
-  form.addEventListener('submit', async function(e) {
-    e.preventDefault();
-    submitBtn.disabled = true;
-
-    const phone = normalizePhone(phoneInput.value);
-    const amount = amountInput.value;
-    const eventId = eventInput.value;
-
-    // Validation
-    if (!validatePhone(phone)) {
-      alert('Please enter a valid M-Pesa number in format 2547XXXXXXXX');
-      submitBtn.disabled = false;
-      return;
     }
 
-    if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
-      alert('Please enter a valid amount');
-      submitBtn.disabled = false;
-      return;
-    }
+    form.addEventListener('submit', handleSubmit);
 
-    // Show payment modal
-    displayPhone.textContent = phone;
-    paymentModal.show();
-    updateStatus('Initiating payment request...', 'info');
+    phoneInput.addEventListener('input', function() {
+        const phone = formatPhone(this.value);
+        const valid = isValidPhone(phone);
+        this.classList.toggle('is-valid', valid);
+        this.classList.toggle('is-invalid', !valid && phone.length > 0);
+        submitBtn.disabled = !valid || !amountInput.value || isNaN(amountInput.value);
+    });
 
-    try {
-      // Initiate STK Push
-      const response = await fetch('/payments/initiate-stk-push/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': csrftoken
-          Authorization:
-        },
-        body: JSON.stringify({ phone, amount, event_id: eventId })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `Payment failed (HTTP ${response.status})`);
-      }
-
-      const data = await response.json();
-      if (!data.success) throw new Error(data.message || 'Payment initiation failed');
-
-      // Start polling for payment status
-      updateStatus('STK Push sent. Please enter your M-Pesa PIN on your phone.', 'info');
-      await pollPaymentStatus(data.checkout_request_id);
-
-    } catch (error) {
-      console.error('Payment error:', error);
-      updateStatus(error.message, 'danger');
-      showResult('danger', error.message);
-    } finally {
-      resetFormState();
-    }
-  });
-
-  // Helper function for CSRF token
-  function getCookie(name) {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop().split(';').shift();
-  }
+    amountInput.addEventListener('input', function() {
+        const valid = this.value && !isNaN(this.value) && parseFloat(this.value) > 0;
+        submitBtn.disabled = !valid || !isValidPhone(formatPhone(phoneInput.value));
+    });
 });
 </script>
 
 
-<!--<script>-->
-<!--document.addEventListener('DOMContentLoaded', function() {-->
-<!--  const form = document.getElementById('mpesaPaymentForm');-->
-<!--  const submitBtn = document.getElementById('submitBtn');-->
-<!--  const phoneInput = document.getElementById('phone');-->
-<!--  const paymentStatus = document.getElementById('paymentStatus');-->
-<!--  const statusMessage = document.getElementById('statusMessage');-->
-<!--  const paymentModal = new bootstrap.Modal(document.getElementById('paymentModal'));-->
-<!--  const displayPhone = document.getElementById('displayPhone');-->
-<!--  const paymentResult = document.getElementById('paymentResult');-->
-
-<!--  function getCookie(name) {-->
-<!--    const value = `; ${document.cookie}`;-->
-<!--    const parts = value.split(`; ${name}=`);-->
-<!--    if (parts.length === 2) return parts.pop().split(';').shift();-->
-<!--  }-->
-<!--  const csrftoken = getCookie('csrftoken');-->
-
-<!--  function normalizePhoneForUI(phone) {-->
-<!--    phone = (phone || '').replace(/\D/g,'');-->
-<!--    if (phone.startsWith('0') && phone.length === 10) return '254' + phone.slice(1);-->
-<!--    if (phone.startsWith('7') && phone.length === 9) return '254' + phone;-->
-<!--    if (phone.startsWith('+254') && phone.length === 13) return phone.slice(1);-->
-<!--    return phone;-->
-<!--  }-->
-<!--  function validatePhone(phone) { return /^2547\d{8}$/.test(phone); }-->
-
-<!--  async function pollStatus(checkoutRequestId) {-->
-<!--    const max = 15;-->
-<!--    let attempt = 0;-->
-<!--    while (attempt < max) {-->
-<!--      attempt++;-->
-<!--      statusMessage.textContent = `Checking payment status (${attempt}/${max})...`;-->
-<!--      try {-->
-<!--        const res = await fetch(`/payments/check-status/?checkout_request_id=${checkoutRequestId}`, {-->
-<!--          method: 'GET',-->
-<!--          credentials: 'include',-->
-<!--          headers: { 'X-CSRFToken': csrftoken }-->
-<!--        });-->
-<!--        if (!res.ok) {-->
-<!--          // If 401/403 -> user not authenticated or CSRF issue-->
-<!--          throw new Error(`Server status ${res.status}`);-->
-<!--        }-->
-<!--        const data = await res.json();-->
-<!--        if (data.status === 'success') {-->
-<!--          paymentResult.innerHTML = `<div class="alert alert-success">Payment complete — Redirecting…</div>`;-->
-<!--          setTimeout(()=> window.location.href = `/payments/success/${data.transaction_id}/`, 1200);-->
-<!--          return;-->
-<!--        } else if (data.status === 'failed') {-->
-<!--          throw new Error(data.message || 'Payment failed');-->
-<!--        }-->
-<!--        // not yet done-->
-<!--        await new Promise(r => setTimeout(r, 2000 * Math.pow(1.4, attempt))); // backoff-->
-<!--      } catch (err) {-->
-<!--        console.error('pollStatus error', err);-->
-<!--        if (attempt >= max) {-->
-<!--          paymentResult.innerHTML = `<div class="alert alert-warning">Payment is taking too long. Check your M-Pesa messages or transaction history.</div>`;-->
-<!--          return;-->
-<!--        }-->
-<!--      }-->
-<!--    }-->
-<!--  }-->
-
-<!--  form.addEventListener('submit', async function(e) {-->
-<!--    e.preventDefault();-->
-<!--    submitBtn.disabled = true;-->
-<!--    const phone = normalizePhoneForUI(phoneInput.value);-->
-<!--    const amount = form.querySelector('input[name="amount"]').value;-->
-<!--    const event_id = form.querySelector('input[name="event_id"]').value;-->
-
-<!--    if (!validatePhone(phone)) {-->
-<!--      alert('Enter M-Pesa phone in format 2547XXXXXXXX');-->
-<!--      submitBtn.disabled = false;-->
-<!--      return;-->
-<!--    }-->
-
-<!--    displayPhone.textContent = phone;-->
-<!--    paymentModal.show();-->
-<!--    statusMessage.textContent = 'Initiating payment request...';-->
-<!--    paymentStatus.classList.remove('d-none');-->
-<!--    paymentStatus.classList.remove('alert-danger');-->
-<!--    paymentStatus.classList.add('alert-info');-->
-
-<!--    try {-->
-<!--      const res = await fetch('/payments/initiate-stk-push/', {-->
-<!--        method: 'POST',-->
-<!--        credentials: 'include',               // important to send session cookie-->
-<!--        headers: {-->
-<!--          'Content-Type': 'application/json',-->
-<!--          'X-CSRFToken': csrftoken-->
-<!--        },-->
-<!--        body: JSON.stringify({ phone, amount, event_id })-->
-<!--      });-->
-
-<!--      if (!res.ok) {-->
-<!--        // try to parse JSON error from server-->
-<!--        let errObj = null;-->
-<!--        try { errObj = await res.json(); } catch(_) {}-->
-<!--        throw new Error(errObj?.message || `Server error ${res.status}`);-->
-<!--      }-->
-
-<!--      const data = await res.json();-->
-<!--      if (!data.success) throw new Error(data.message || 'Failed to initiate payment');-->
-
-<!--      statusMessage.textContent = 'STK Push sent. Check your phone and enter your M-Pesa PIN.';-->
-<!--      // start polling-->
-<!--      await pollStatus(data.checkout_request_id);-->
-
-<!--    } catch (err) {-->
-<!--      console.error('Payment initiation error', err);-->
-<!--      paymentStatus.classList.remove('alert-info');-->
-<!--      paymentStatus.classList.add('alert-danger');-->
-<!--      statusMessage.textContent = err.message || 'Payment error';-->
-<!--      paymentResult.innerHTML = `<div class="alert alert-danger">${err.message}</div>`;-->
-<!--    } finally {-->
-<!--      submitBtn.disabled = false;-->
-<!--    }-->
-<!--  });-->
-<!--});-->
-<!--</script>-->
-
-
-
-<!--<script>-->
-<!--document.addEventListener('DOMContentLoaded', function() {-->
-<!--    const form = document.getElementById('mpesaPaymentForm');-->
-<!--    const submitBtn = document.getElementById('submitBtn');-->
-<!--    const paymentStatus = document.getElementById('paymentStatus');-->
-<!--    const statusMessage = document.getElementById('statusMessage');-->
-<!--    const paymentModal = new bootstrap.Modal(document.getElementById('paymentModal'));-->
-<!--    const displayPhone = document.getElementById('displayPhone');-->
-<!--    const paymentResult = document.getElementById('paymentResult');-->
-<!--    const phoneInput = document.getElementById('phone');-->
-
-<!--    // Function to get CSRF token from cookies-->
-<!--    function getCookie(name) {-->
-<!--        let cookieValue = null;-->
-<!--        if (document.cookie && document.cookie !== '') {-->
-<!--            const cookies = document.cookie.split(';');-->
-<!--            for (let i = 0; i < cookies.length; i++) {-->
-<!--                const cookie = cookies[i].trim();-->
-<!--                if (cookie.substring(0, name.length + 1) === (name + '=')) {-->
-<!--                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));-->
-<!--                    break;-->
-<!--                }-->
-<!--            }-->
-<!--        }-->
-<!--        return cookieValue;-->
-<!--    }-->
-
-<!--    const csrftoken = getCookie('csrftoken');-->
-
-<!--    // Format phone number to 2547XXXXXXXX format-->
-<!--    function formatPhoneNumber(phone) {-->
-<!--        phone = phone.replace(/\D/g, '');-->
-<!--        if (phone.startsWith('0') && phone.length === 10) {-->
-<!--            return '254' + phone.substring(1);-->
-<!--        } else if (phone.startsWith('7') && phone.length === 9) {-->
-<!--            return '254' + phone;-->
-<!--        } else if (phone.startsWith('+254') && phone.length === 13) {-->
-<!--            return phone.substring(1);-->
-<!--        }-->
-<!--        return phone;-->
-<!--    }-->
-
-<!--    // Validate phone number format-->
-<!--    function validatePhoneNumber(phone) {-->
-<!--        return phone && /^2547\d{8}$/.test(phone);-->
-<!--    }-->
-
-<!--    // Show error message-->
-<!--    function showError(message, isFatal = false) {-->
-<!--        statusMessage.textContent = message;-->
-<!--        paymentStatus.classList.remove('alert-info');-->
-<!--        paymentStatus.classList.add('alert-danger');-->
-<!--        paymentStatus.classList.remove('d-none');-->
-<!--        submitBtn.disabled = false;-->
-
-<!--        if (isFatal) {-->
-<!--            paymentResult.innerHTML = `-->
-<!--                <div class="alert alert-danger mt-3">-->
-<!--                    <i class="fas fa-exclamation-circle me-2"></i>-->
-<!--                    ${message}-->
-<!--                </div>-->
-<!--            `;-->
-<!--            paymentModal.hide();-->
-<!--        }-->
-<!--    }-->
-
-<!--    // Show success message-->
-<!--    function showSuccess(message) {-->
-<!--        paymentResult.innerHTML = `-->
-<!--            <div class="alert alert-success mt-3">-->
-<!--                <i class="fas fa-check-circle me-2"></i>-->
-<!--                ${message}-->
-<!--            </div>-->
-<!--        `;-->
-<!--    }-->
-
-<!--    // Poll payment status with exponential backoff-->
-<!--    async function pollPaymentStatus(checkoutRequestId) {-->
-<!--        const maxAttempts = 15; // Increased from 10 to 15-->
-<!--        const initialDelay = 2000;-->
-<!--        let attempts = 0;-->
-
-<!--        while (attempts < maxAttempts) {-->
-<!--            attempts++;-->
-<!--            const delay = initialDelay * Math.pow(1.5, attempts - 1); // Exponential backoff-->
-<!--            statusMessage.textContent = `Checking payment status (${attempts}/${maxAttempts})...`;-->
-
-<!--            try {-->
-<!--                const response = await fetch(`/payments/check-status/?checkout_request_id=${checkoutRequestId}`, {-->
-<!--                    headers: {-->
-<!--                        "X-CSRFToken": csrftoken-->
-<!--                    },-->
-<!--                    credentials: 'include'-->
-<!--                });-->
-
-<!--                if (!response.ok) {-->
-<!--                    throw new Error(`Server error: ${response.status}`);-->
-<!--                }-->
-
-<!--                const data = await response.json();-->
-
-<!--                if (data.status === 'success') {-->
-<!--                    showSuccess('Payment successful! Redirecting...');-->
-<!--                    setTimeout(() => {-->
-<!--                        window.location.href = `/payments/success/${data.transaction_id}/`;-->
-<!--                    }, 2000);-->
-<!--                    return true;-->
-<!--                } else if (data.status === 'failed') {-->
-<!--                    throw new Error(data.message || 'Payment failed');-->
-<!--                }-->
-
-<!--                await new Promise(resolve => setTimeout(resolve, delay));-->
-
-<!--            } catch (error) {-->
-<!--                console.error('Polling error:', error);-->
-<!--                if (attempts === maxAttempts) {-->
-<!--                    throw new Error('Payment processing took too long. Please check your M-Pesa messages or transaction history.');-->
-<!--                }-->
-<!--            }-->
-<!--        }-->
-<!--        return false;-->
-<!--    }-->
-
-<!--    // Form submission handler-->
-<!--    form.addEventListener('submit', async function(e) {-->
-<!--        e.preventDefault();-->
-
-<!--        // Validate phone number-->
-<!--        const formattedPhone = formatPhoneNumber(phoneInput.value);-->
-<!--        if (!validatePhoneNumber(formattedPhone)) {-->
-<!--            showError('Please enter a valid Safaricom number (formats: 2547XXXXXXXX, 07XXXXXXXX, or +2547XXXXXXXX)', true);-->
-<!--            phoneInput.focus();-->
-<!--            return;-->
-<!--        }-->
-
-<!--        // Prepare UI-->
-<!--        submitBtn.disabled = true;-->
-<!--        paymentStatus.classList.remove('d-none', 'alert-danger');-->
-<!--        paymentStatus.classList.add('alert-info');-->
-<!--        statusMessage.textContent = "Initiating payment request...";-->
-
-<!--        // Prepare payment data-->
-<!--        const paymentData = {-->
-<!--            phone: formattedPhone,-->
-<!--            amount: form.querySelector('input[name="amount"]').value,-->
-<!--            event_id: form.querySelector('input[name="event_id"]').value-->
-<!--        };-->
-
-<!--        try {-->
-<!--            // Show payment modal-->
-<!--            displayPhone.textContent = formattedPhone;-->
-<!--            paymentModal.show();-->
-
-<!--            // Prepare headers-->
-<!--            const headers = {-->
-<!--                "Content-Type": "application/json",-->
-<!--                "X-CSRFToken": csrftoken-->
-<!--            };-->
-
-<!--            // Add auth token if available-->
-<!--            {% if user.is_authenticated %}-->
-<!--                headers["Authorization"] = "Token {{ user.auth_token.key }}";-->
-<!--            {% endif %}-->
-
-<!--            // Initiate STK Push-->
-<!--            const response = await fetch("/payments/initiate-stk-push/", {-->
-<!--                method: 'POST',-->
-<!--                headers: headers,-->
-<!--                credentials: 'include',-->
-<!--                body: JSON.stringify(paymentData)-->
-<!--            });-->
-
-<!--            if (!response.ok) {-->
-<!--                const errorData = await response.json();-->
-<!--                throw new Error(errorData.message || `Payment initiation failed (HTTP ${response.status})`);-->
-<!--            }-->
-
-<!--            const data = await response.json();-->
-
-<!--            if (!data.success) {-->
-<!--                throw new Error(data.message || 'Failed to initiate payment');-->
-<!--            }-->
-
-<!--            statusMessage.textContent = "Payment request sent. Please check your phone and enter your M-Pesa PIN.";-->
-
-<!--            // Poll for payment status-->
-<!--            const paymentCompleted = await pollPaymentStatus(data.checkout_request_id);-->
-
-<!--            if (!paymentCompleted) {-->
-<!--                throw new Error('Payment processing took too long. Please check your M-Pesa messages or transaction history.');-->
-<!--            }-->
-
-<!--        } catch (error) {-->
-<!--            console.error('Payment Error:', error);-->
-<!--            showError(error.message, true);-->
-<!--        } finally {-->
-<!--            submitBtn.disabled = false;-->
-<!--        }-->
-<!--    });-->
-
-<!--    // Phone number input validation with better UX-->
-<!--    phoneInput.addEventListener('input', function() {-->
-<!--        const formatted = formatPhoneNumber(this.value);-->
-<!--        const isValid = validatePhoneNumber(formatted);-->
-
-<!--        if (isValid) {-->
-<!--            this.classList.add('is-valid');-->
-<!--            this.classList.remove('is-invalid');-->
-<!--        } else {-->
-<!--            this.classList.add('is-invalid');-->
-<!--            this.classList.remove('is-valid');-->
-<!--        }-->
-
-<!--        // Enable/disable submit button based on validation-->
-<!--        submitBtn.disabled = !isValid || !form.querySelector('input[name="amount"]').value;-->
-<!--    });-->
-
-<!--    // Amount input validation-->
-<!--    form.querySelector('input[name="amount"]').addEventListener('input', function() {-->
-<!--        submitBtn.disabled = !validatePhoneNumber(formatPhoneNumber(phoneInput.value)) || !this.value;-->
-<!--    });-->
-<!--});-->
-<!--</script>-->
 
 {% endblock %}
